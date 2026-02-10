@@ -1,6 +1,6 @@
 # Hanime.tv Stremio Addon
 
-[![Fly.io](https://img.shields.io/badge/Fly.io-deployed-success?logo=fly.io)](https://hanime-stremio.fly.dev)
+[![Fly.io](https://img.shields.io/badge/Fly.io-hosting-unavailable?logo=fly.io&color=lightgrey)](#)
 
 A Stremio addon for browsing and streaming content from Hanime.tv.
 
@@ -59,12 +59,20 @@ npm install
 npm start
 ```
 
-## Deployed Version
+## Deployed / Hosted Version Status
 
-A hosted version is available at:
-```
-https://hanime-stremio.fly.dev/manifest.json
-```
+🚫 **Public hosted version is currently unavailable**
+
+The addon is **no longer hosted publicly**.
+
+Running this addon on Fly.io (or similar platforms) requires **paid plans with high and unpredictable costs** due to:
+
+- Continuous traffic from Stremio clients
+- Bandwidth-heavy streaming metadata requests
+- Always-on server requirements
+
+Because of this, maintaining a **free or public hosted instance is not financially sustainable**.
+
 Stremio Addons page:
 ```
 https://stremio-addons.net/addons/hanime
