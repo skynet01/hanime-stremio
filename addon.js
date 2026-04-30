@@ -41,49 +41,55 @@ const manifest = {
     }
   ],
   catalogs: [
-    // Anime catalogs
+    // Anime catalogs.
+    //
+    // The brand list (~1,900 bytes) is only attached to catalogs where
+    // discovery filtering matters most — main Hanime and Uncensored.
+    // The four sort-only catalogs (Recent / Most Likes / Most Views /
+    // Newest) drop the genre dropdown entirely to keep the manifest
+    // under Stremio's 8 KB ceiling.
     {
       type: constants.contentTypes.ANIME,
       name: 'Hanime',
       id: constants.catalogCategories.HANIME,
-      extra: constants.catalogExtras
+      extra: constants.catalogExtrasWithBrands
     },
     {
       type: constants.contentTypes.ANIME,
       name: 'Hanime Recent',
       id: constants.catalogCategories.RECENT,
-      extra: constants.catalogExtras
+      extra: constants.catalogExtrasMinimal
     },
     {
       type: constants.contentTypes.ANIME,
       name: 'Hanime Most Likes',
       id: constants.catalogCategories.MOST_LIKES,
-      extra: constants.catalogExtras
+      extra: constants.catalogExtrasMinimal
     },
     {
       type: constants.contentTypes.ANIME,
       name: 'Hanime Most Views',
       id: constants.catalogCategories.MOST_VIEWS,
-      extra: constants.catalogExtras
+      extra: constants.catalogExtrasMinimal
     },
     {
       type: constants.contentTypes.ANIME,
       name: 'Hanime Newest',
       id: constants.catalogCategories.NEWEST,
-      extra: constants.catalogExtras
+      extra: constants.catalogExtrasMinimal
     },
     {
       type: constants.contentTypes.ANIME,
       name: 'Hanime Uncensored',
       id: constants.catalogCategories.UNCENSORED,
-      extra: constants.catalogExtras
+      extra: constants.catalogExtrasUncensored
     },
-    // Series catalogs
+    // Series catalogs — minimal extras to keep manifest under 8 KB.
     {
       type: constants.contentTypes.SERIES,
       name: 'Hanime Series',
       id: constants.catalogCategories.SERIES,
-      extra: constants.catalogExtras
+      extra: constants.catalogExtrasMinimal
     }
   ],
   resources: ['catalog', 'stream', 'meta'],

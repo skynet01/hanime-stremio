@@ -7,6 +7,7 @@
 		"start": "node server.js",
 		"dev": "cross-env LOG_LEVEL=debug CACHE_ENABLED=false node server.js",
 		"prod": "cross-env NODE_ENV=production LOG_LEVEL=warn node server.js",
+		"discover-brands": "node scripts/discover-brands.js",
 		"build": "npm install && npm run build:css",
 		"build:css": "tailwindcss -i ./src/input.css -o ./public/css/tailwind.css --minify",
 		"netlify:dev": "netlify dev"
