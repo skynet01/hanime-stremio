@@ -75,3 +75,7 @@ typings/
 # FuseBox cache
 .fusebox/
 /docs
+
+# Internal handoff / working notes
+HANDOFF.md
+.claude/

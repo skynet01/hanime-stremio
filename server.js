@@ -14,6 +14,7 @@ const config = require('./lib/config');
 const logger = require('./lib/logger');
 const addonInterface = require('./addon');
 const apiClient = addonInterface.apiClient; // Get the shared apiClient instance
+const userApiManager = addonInterface.userApiManager;
 const createImageProxyMiddleware = require('./lib/middleware/proxy_image_middleware');
 const { 
   createGeneralRateLimiter, 
@@ -173,6 +174,26 @@ function serveHTTP(addonInterface, opts = {}) {
       res.end(landingHTML);
     });
   }
+
+  // Credentials verification endpoint used by the configure page.
+  // POSTs {email, password} → tries to authenticate against Hanime; on
+  // success the session is cached so the subsequent stream call reuses it.
+  app.post('/verify', express.json({ limit: '4kb' }), async (req, res) => {
+    const { email, password } = req.body || {};
+    if (!email || !password || typeof email !== 'string' || typeof password !== 'string') {
+      return res.status(400).json({ ok: false, error: 'Email and password are required.' });
+    }
+    try {
+      const userApi = await userApiManager.getUserApi(email, password);
+      return res.json({ ok: true, isPremium: !!userApi.isPremium });
+    } catch (err) {
+      logger.warn('Credential verification failed', {
+        emailPrefix: email.substring(0, 3) + '***',
+        error: err && err.message ? err.message : String(err)
+      });
+      return res.status(401).json({ ok: false, error: 'Invalid credentials or upstream error.' });
+    }
+  });
 
   app.use(getRouter(addonInterface));
 
