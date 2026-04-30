@@ -72,6 +72,12 @@ const manifest = {
       id: constants.catalogCategories.NEWEST,
       extra: constants.catalogExtras
     },
+    {
+      type: constants.contentTypes.ANIME,
+      name: 'Hanime Uncensored',
+      id: constants.catalogCategories.UNCENSORED,
+      extra: constants.catalogExtras
+    },
     // Series catalogs
     {
       type: constants.contentTypes.SERIES,
