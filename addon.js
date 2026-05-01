@@ -48,6 +48,12 @@ const manifest = {
     // The four sort-only catalogs (Recent / Most Likes / Most Views /
     // Newest) drop the genre dropdown entirely to keep the manifest
     // under Stremio's 8 KB ceiling.
+    //
+    // `search` is intentionally only declared on the main Hanime catalog
+    // and the Series catalog. Stremio only routes search queries to
+    // catalogs that advertise `search` in their extras, so a single query
+    // produces one anime row + one series row instead of five duplicate
+    // rows of identical hits across the sort and uncensored catalogs.
     {
       type: constants.contentTypes.ANIME,
       name: 'Hanime',
@@ -58,25 +64,25 @@ const manifest = {
       type: constants.contentTypes.ANIME,
       name: 'Hanime Recent',
       id: constants.catalogCategories.RECENT,
-      extra: constants.catalogExtrasMinimal
+      extra: constants.catalogExtrasSortOnly
     },
     {
       type: constants.contentTypes.ANIME,
       name: 'Hanime Most Likes',
       id: constants.catalogCategories.MOST_LIKES,
-      extra: constants.catalogExtrasMinimal
+      extra: constants.catalogExtrasSortOnly
     },
     {
       type: constants.contentTypes.ANIME,
       name: 'Hanime Most Views',
       id: constants.catalogCategories.MOST_VIEWS,
-      extra: constants.catalogExtrasMinimal
+      extra: constants.catalogExtrasSortOnly
     },
     {
       type: constants.contentTypes.ANIME,
       name: 'Hanime Newest',
       id: constants.catalogCategories.NEWEST,
-      extra: constants.catalogExtrasMinimal
+      extra: constants.catalogExtrasSortOnly
     },
     {
       type: constants.contentTypes.ANIME,
