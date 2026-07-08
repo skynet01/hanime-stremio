@@ -16,7 +16,7 @@ const apiClient = new HanimeApiClient(config);
 const userApiManager = new UserApiManager();
 const catalogHandler = new CatalogHandler(apiClient, logger, config);
 const metaHandler = new MetaHandler(apiClient, logger, config);
-const streamHandler = new StreamHandler(apiClient, logger, config, userApiManager);
+const streamHandler = new StreamHandler(logger, config, userApiManager);
 
 // Pre-warm the stream signature module (boots a WASM sandbox, ~2-3s) so the
 // first stream request doesn't pay the cost. Non-blocking; failures are logged
