@@ -18,6 +18,11 @@ const catalogHandler = new CatalogHandler(apiClient, logger, config);
 const metaHandler = new MetaHandler(apiClient, logger, config);
 const streamHandler = new StreamHandler(apiClient, logger, config, userApiManager);
 
+// Pre-warm the stream signature module (boots a WASM sandbox, ~2-3s) so the
+// first stream request doesn't pay the cost. Non-blocking; failures are logged
+// by the service and simply mean the first request warms it lazily instead.
+require('./lib/services/htv_signature_service').init().catch(() => {});
+
 const manifest = {
   id: config.addon.id,
   version: config.addon.version,
