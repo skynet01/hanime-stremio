@@ -1,6 +1,6 @@
 {
-  "generatedAt": "2026-04-30T19:47:01.080Z",
-  "elapsedSeconds": 230,
+  "generatedAt": "2026-07-08T08:02:25.039Z",
+  "elapsedSeconds": 193.7,
   "totalBrands": 157,
   "probedBrands": 153,
   "knownGood": [
@@ -9,7 +9,7 @@
     "Green Bunny",
     "MS Pictures"
   ],
-  "count": 58,
+  "count": 60,
   "brands": [
     "Adult Source Media",
     "AIC",
@@ -63,6 +63,8 @@
     "Studio Deen",
     "Studio FOW",
     "Studio Gokumi",
+    "Studio Houkiboshi",
+    "Suiseisha",
     "T-Rex",
     "TDK Core",
     "TNK",
