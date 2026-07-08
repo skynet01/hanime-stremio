@@ -71,18 +71,28 @@ process.on('uncaughtException', (err) => {
 /**
  * Request logging middleware
  */
+// Stremio embeds the user's {email,password} JSON as the first path segment,
+// so req.path must never be logged verbatim — redact that segment to keep
+// plaintext credentials out of the logs.
+function redactPath(p) {
+  return String(p).replace(/\/(%7[bB]|\{)[^/]*/, '/<config>');
+}
+
 function requestLogger(req, res, next) {
   const start = Date.now();
+  const path = redactPath(req.path);
 
-  logger.info(`${req.method} ${req.path}`, {
-    ip: req.ip || req.connection.remoteAddress,
+  // Only the finish line is logged at info (it carries status + duration and
+  // subsumes the entry line); the entry line stays at debug to halve per-
+  // request log volume in production.
+  logger.debug(`-> ${req.method} ${path}`, {
     userAgent: req.get('user-agent')?.substring(0, 50) || 'unknown'
   });
 
   res.on('finish', () => {
     const duration = Date.now() - start;
     const level = res.statusCode >= 400 ? 'error' : 'info';
-    logger[level](`${req.method} ${req.path} - ${res.statusCode}`, {
+    logger[level](`${req.method} ${path} - ${res.statusCode}`, {
       duration: `${duration}ms`,
       status: res.statusCode
     });
