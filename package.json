@@ -1,13 +1,13 @@
 {
 	"name": "stremio-addon-hanimetv",
-	"version": "1.3.4",
+	"version": "1.3.5",
 	"description": "Stremio addon for Hanime.tv - Browse and stream hentai content with advanced filtering",
 	"main": "server.js",
 	"scripts": {
 		"start": "node server.js",
 		"dev": "cross-env LOG_LEVEL=debug CACHE_ENABLED=false node server.js",
 		"prod": "cross-env NODE_ENV=production LOG_LEVEL=warn node server.js",
-		"test": "node test/hanime_api_client.test.js",
+		"test": "node test/hanime_api_client.test.js && node test/htv_stream_resolver.test.js && node test/transformers.test.js && node test/cache.test.js",
 		"discover-brands": "node scripts/discover-brands.js",
     "refresh-htv-signature": "node scripts/refresh-htv-signature.js",
 		"discover-uncensored-genres": "node scripts/discover-uncensored-genres.js",
