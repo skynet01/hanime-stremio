@@ -22,7 +22,7 @@ async function testFallsBackToPlayableHlsMetadata() {
     }
   });
   axios.get = async (url, options = {}) => {
-    if (url.includes('/videos_manifests/')) {
+    if (url.startsWith('https://guest.example/videos_manifests')) {
       return { status: 403, data: '<html>blocked</html>' };
     }
     if (url === playlistUrl) {
@@ -53,7 +53,7 @@ async function testFallsBackToPlayableHlsMetadata() {
     api: {
       htv: {
         handshakeUrl: 'https://guest.example/handshake',
-        manifestUrl: 'https://guest.example/videos_manifests',
+        metadataUrl: 'https://guest.example/videos_manifests',
         hlsHost: 'https://hanime.tv'
       }
     }
@@ -64,6 +64,43 @@ async function testFallsBackToPlayableHlsMetadata() {
   assert.strictEqual(streams.length, 1);
   assert.strictEqual(streams[0].durationMs, 4000);
   assert.strictEqual(streams[0].filesizeMbs, 3);
+}
+
+async function testUsesUniversalVideoMetadataWithoutPlaylistProbes() {
+  let playlistRequests = 0;
+
+  signatureService.getSignature = async () => ({ signature: 'test', time: 123 });
+  axios.post = async () => ({
+    status: 200,
+    headers: {
+      'x-token': sealMessage({ sources: [{ height: 720, url: '/hls/test-720' }] })
+    }
+  });
+  axios.get = async (url) => {
+    if (url.startsWith('https://www.universal-cdn.com/api/v8/video')) {
+      return {
+        status: 200,
+        data: { hentai_video: { duration_in_ms: 600000 } }
+      };
+    }
+    playlistRequests++;
+    throw new Error(`Unexpected playlist GET ${url}`);
+  };
+
+  const resolver = new HtvStreamResolver({
+    api: {
+      htv: {
+        metadataUrl: 'https://www.universal-cdn.com/api/v8/video',
+        hlsHost: 'https://hanime.tv'
+      }
+    }
+  });
+  const streams = await resolver.resolveStreams('test-video');
+
+  assert.strictEqual(streams[0].durationMs, 600000);
+  assert.strictEqual(streams[0].filesizeMbs, 101.3);
+  assert.strictEqual(streams[0].filesizeEstimated, true);
+  assert.strictEqual(playlistRequests, 0);
 }
 
 async function testLimitsSegmentProbesForLargePlaylists() {
@@ -81,7 +118,7 @@ async function testLimitsSegmentProbesForLargePlaylists() {
     }
   });
   axios.get = async (url, options = {}) => {
-    if (url.includes('/videos_manifests/')) {
+    if (url.startsWith('https://guest.example/videos_manifests')) {
       return { status: 403, headers: {}, data: '<html>blocked</html>' };
     }
     if (url === playlistUrl) {
@@ -106,7 +143,7 @@ async function testLimitsSegmentProbesForLargePlaylists() {
   };
 
   const resolver = new HtvStreamResolver({
-    api: { htv: { manifestUrl: 'https://guest.example/videos_manifests' } }
+    api: { htv: { metadataUrl: 'https://guest.example/videos_manifests' } }
   });
   const streams = await resolver.resolveStreams('large-video');
 
@@ -129,6 +166,7 @@ function testMissingMetadataDoesNotRenderZeroes() {
 async function run() {
   try {
     await testFallsBackToPlayableHlsMetadata();
+    await testUsesUniversalVideoMetadataWithoutPlaylistProbes();
     await testLimitsSegmentProbesForLargePlaylists();
     testMissingMetadataDoesNotRenderZeroes();
     console.log('htv_stream_resolver tests passed');
