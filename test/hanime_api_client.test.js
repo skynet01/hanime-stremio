@@ -1,6 +1,7 @@
 const assert = require('assert');
 const axios = require('axios');
 const HanimeApiClient = require('../lib/clients/hanime_api_client');
+const config = require('../lib/config');
 
 const originalGet = axios.get;
 const originalPost = axios.post;
@@ -84,9 +85,47 @@ async function testSearchUsesSearchHvsDataset() {
   assert.deepStrictEqual(calls, [['get', searchUrl]]);
 }
 
+async function testVideoMetadataUsesLiveUniversalCdnEndpoint() {
+  let requestedUrl;
+  axios.get = async (url) => {
+    requestedUrl = url;
+    return {
+      status: 200,
+      data: { hentai_video: { slug: 'test-video' } }
+    };
+  };
+
+  const client = new HanimeApiClient(config);
+  const result = await client.getVideoData('test-video', 0);
+
+  assert.strictEqual(
+    requestedUrl,
+    'https://www.universal-cdn.com/api/v8/video?id=test-video&'
+  );
+  assert.strictEqual(result.hentai_video.slug, 'test-video');
+}
+
+async function testProductionSearchUsesSignedUniversalCdnEndpoint() {
+  let request;
+  axios.get = async (url, options) => {
+    request = { url, options };
+    return { status: 200, data: [] };
+  };
+
+  const client = new HanimeApiClient(config);
+  await client.search({});
+
+  assert.strictEqual(request.url, 'https://www.universal-cdn.com/api/v10/search_hvs');
+  assert.strictEqual(request.options.headers['x-signature-version'], 'app2');
+  assert.ok(request.options.headers['x-claim']);
+  assert.ok(request.options.headers['x-signature']);
+}
+
 async function main() {
   try {
     await testSearchUsesSearchHvsDataset();
+    await testVideoMetadataUsesLiveUniversalCdnEndpoint();
+    await testProductionSearchUsesSignedUniversalCdnEndpoint();
   } finally {
     axios.get = originalGet;
     axios.post = originalPost;
