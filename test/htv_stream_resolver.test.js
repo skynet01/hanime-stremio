@@ -103,6 +103,37 @@ async function testUsesUniversalVideoMetadataWithoutPlaylistProbes() {
   assert.strictEqual(playlistRequests, 0);
 }
 
+async function testAlwaysReturnsEstimatedMetadataWhenEverySourceIsBlocked() {
+  signatureService.getSignature = async () => ({ signature: 'test', time: 123 });
+  axios.post = async () => ({
+    status: 200,
+    headers: {
+      'x-token': sealMessage({ sources: [{ height: 720, url: '/hls/blocked-720' }] })
+    }
+  });
+  axios.get = async (url) => {
+    if (url.startsWith('https://www.universal-cdn.com/api/v8/video')) {
+      return { status: 404, headers: {}, data: { errors: ['Not found'] } };
+    }
+    return { status: 403, data: '<html>blocked</html>' };
+  };
+
+  const resolver = new HtvStreamResolver({
+    api: {
+      htv: {
+        metadataUrl: 'https://www.universal-cdn.com/api/v8/video',
+        hlsHost: 'https://hanime.tv'
+      }
+    }
+  });
+  const streams = await resolver.resolveStreams('fully-blocked-video');
+
+  assert.strictEqual(streams[0].durationMs, 20 * 60 * 1000);
+  assert.strictEqual(streams[0].filesizeMbs, 202.5);
+  assert.strictEqual(streams[0].durationEstimated, true);
+  assert.strictEqual(streams[0].filesizeEstimated, true);
+}
+
 async function testLimitsSegmentProbesForLargePlaylists() {
   const playlistUrl = 'https://hanime.tv/hls/large-720';
   const segments = Array.from({ length: 30 }, (_, index) => (
@@ -159,14 +190,17 @@ function testMissingMetadataDoesNotRenderZeroes() {
     video_stream_group_id: 'Hanime.TV'
   });
 
-  assert.ok(!stream.title.includes('0 MB'));
-  assert.ok(!stream.title.includes('0 min'));
+  assert.ok(!stream.title.includes('💾 0 MB'));
+  assert.ok(!stream.title.includes('⌚ 0 min'));
+  assert.ok(stream.title.includes('~202.5 MB'));
+  assert.ok(stream.title.includes('~20 min'));
 }
 
 async function run() {
   try {
     await testFallsBackToPlayableHlsMetadata();
     await testUsesUniversalVideoMetadataWithoutPlaylistProbes();
+    await testAlwaysReturnsEstimatedMetadataWhenEverySourceIsBlocked();
     await testLimitsSegmentProbesForLargePlaylists();
     testMissingMetadataDoesNotRenderZeroes();
     console.log('htv_stream_resolver tests passed');
