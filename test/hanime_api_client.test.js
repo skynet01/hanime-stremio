@@ -115,10 +115,42 @@ async function testProductionSearchUsesSignedUniversalCdnEndpoint() {
   const client = new HanimeApiClient(config);
   await client.search({});
 
-  assert.strictEqual(request.url, 'https://www.universal-cdn.com/api/v10/search_hvs');
+  assert.strictEqual(request.url, 'https://www.universal-cdn.com/api/v11/search_hvs');
   assert.strictEqual(request.options.headers['x-signature-version'], 'app2');
   assert.ok(request.options.headers['x-claim']);
   assert.ok(request.options.headers['x-signature']);
+}
+
+async function testVideoMetadataFallsBackToSearchDataset() {
+  axios.get = async (url) => {
+    if (url.includes('/api/v8/video')) {
+      const error = new Error('Request failed with status code 404');
+      error.response = { status: 404 };
+      throw error;
+    }
+    if (url.includes('/api/v11/search_hvs')) {
+      return {
+        status: 200,
+        data: [{
+          slug: 'fallback-video',
+          name: 'Fallback Video',
+          tags: ['hd', 'plot'],
+          description: '<p>Fallback description</p>'
+        }]
+      };
+    }
+    throw new Error(`Unexpected GET ${url}`);
+  };
+
+  const client = new HanimeApiClient(config);
+  const result = await client.getVideoData('fallback-video', 0);
+
+  assert.strictEqual(result.hentai_video.slug, 'fallback-video');
+  assert.strictEqual(result.hentai_video.duration_in_ms, 20 * 60 * 1000);
+  assert.deepStrictEqual(result.hentai_video.hentai_tags, [
+    { text: 'hd' },
+    { text: 'plot' }
+  ]);
 }
 
 async function main() {
@@ -126,6 +158,7 @@ async function main() {
     await testSearchUsesSearchHvsDataset();
     await testVideoMetadataUsesLiveUniversalCdnEndpoint();
     await testProductionSearchUsesSignedUniversalCdnEndpoint();
+    await testVideoMetadataFallsBackToSearchDataset();
   } finally {
     axios.get = originalGet;
     axios.post = originalPost;
