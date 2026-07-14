@@ -21,6 +21,8 @@ services:
       - CACHE_ENABLED=true
       - CACHE_BROWSER_CACHE=true
       - CACHE_REDIS_URL=redis://redis:6379
+      - HTV_HANDSHAKE_URL=${HTV_HANDSHAKE_URL:-https://hanime-handshake.skynetsource.com/api/v11/handshake}
+      - HTV_RELAY_SECRET=${HTV_RELAY_SECRET:-}
       - RATE_LIMIT_ENABLED=true
       - RATE_LIMIT_USE_REDIS=true
       - SLOW_DOWN_ENABLED=true
