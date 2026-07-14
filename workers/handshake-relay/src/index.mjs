@@ -1,9 +1,12 @@
 const RELAY_PATH = '/api/v11/handshake';
+const SEARCH_PATH = '/api/v11/search_hvs';
 const UPSTREAM_URL = 'https://auth.hanime.tv/api/v11/handshake';
+const SEARCH_UPSTREAM_URL = 'https://guest.freeanimehentai.net/api/v11/search_hvs';
 const MAX_BODY_BYTES = 16 * 1024;
 const FORWARDED_REQUEST_HEADERS = [
   'x-signature',
   'x-signature-version',
+  'x-claim',
   'x-time',
   'x-session-token'
 ];
@@ -39,10 +42,13 @@ export function createRelay({ fetchImpl = fetch } = {}) {
   return {
     async fetch(request, env) {
       const url = new URL(request.url);
-      if (url.pathname !== RELAY_PATH) {
+      const isHandshake = url.pathname === RELAY_PATH;
+      const isSearch = url.pathname === SEARCH_PATH;
+      if (!isHandshake && !isSearch) {
         return jsonResponse(404, 'Not found');
       }
-      if (request.method !== 'POST') {
+      const expectedMethod = isHandshake ? 'POST' : 'GET';
+      if (request.method !== expectedMethod) {
         return jsonResponse(405, 'Method not allowed');
       }
 
@@ -53,13 +59,15 @@ export function createRelay({ fetchImpl = fetch } = {}) {
       if (!authorized) {
         return jsonResponse(401, 'Unauthorized');
       }
-      if (!request.headers.get('content-type')?.startsWith('application/json')) {
-        return jsonResponse(415, 'JSON body required');
-      }
-
-      const body = await request.arrayBuffer();
-      if (body.byteLength > MAX_BODY_BYTES) {
-        return jsonResponse(413, 'Request body too large');
+      let body;
+      if (isHandshake) {
+        if (!request.headers.get('content-type')?.startsWith('application/json')) {
+          return jsonResponse(415, 'JSON body required');
+        }
+        body = await request.arrayBuffer();
+        if (body.byteLength > MAX_BODY_BYTES) {
+          return jsonResponse(413, 'Request body too large');
+        }
       }
 
       const headers = new Headers({
@@ -76,11 +84,14 @@ export function createRelay({ fetchImpl = fetch } = {}) {
 
       let upstream;
       try {
-        upstream = await fetchImpl(new Request(UPSTREAM_URL, {
-          method: 'POST',
-          headers,
-          body
-        }));
+        upstream = await fetchImpl(new Request(
+          isHandshake ? UPSTREAM_URL : SEARCH_UPSTREAM_URL,
+          {
+            method: expectedMethod,
+            headers,
+            body
+          }
+        ));
       } catch (_) {
         return jsonResponse(502, 'Upstream unavailable');
       }
