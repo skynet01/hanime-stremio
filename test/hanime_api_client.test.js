@@ -153,12 +153,18 @@ async function testVideoMetadataFallsBackToSearchDataset() {
   ]);
 }
 
+function testSearchDatasetCacheWindowIsSixHours() {
+  const client = new HanimeApiClient(config);
+  assert.strictEqual(client.searchDatasetTtlMs, 6 * 60 * 60 * 1000);
+}
+
 async function main() {
   try {
     await testSearchUsesSearchHvsDataset();
     await testVideoMetadataUsesLiveUniversalCdnEndpoint();
     await testProductionSearchUsesSignedUniversalCdnEndpoint();
     await testVideoMetadataFallsBackToSearchDataset();
+    testSearchDatasetCacheWindowIsSixHours();
   } finally {
     axios.get = originalGet;
     axios.post = originalPost;
