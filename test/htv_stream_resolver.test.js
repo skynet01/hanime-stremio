@@ -250,8 +250,13 @@ function testMissingMetadataDoesNotRenderZeroes() {
 
   assert.ok(!stream.title.includes('💾 0 MB'));
   assert.ok(!stream.title.includes('⌚ 0 min'));
-  assert.ok(stream.title.includes('~202.5 MB'));
-  assert.ok(stream.title.includes('~20 min'));
+  assert.ok(stream.title.includes('💾 203 MB'));
+  assert.ok(stream.title.includes('⌚ 20 min'));
+  assert.ok(!stream.title.includes('~'));
+  assert.strictEqual(
+    stream.behaviorHints.videoSize,
+    Math.round(202.5 * 1024 * 1024)
+  );
 }
 
 async function run() {

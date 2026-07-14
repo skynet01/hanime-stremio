@@ -11,7 +11,7 @@ function testCleanDescriptionPreservesLetterP() {
   );
 }
 
-function testEstimatedStreamMetadataIsClearlyMarked() {
+function testStreamMetadataUsesStremioCompatibleNotation() {
   const stream = toStremioStream({
     url: 'https://hanime.tv/hls/test',
     height: 720,
@@ -22,10 +22,16 @@ function testEstimatedStreamMetadataIsClearlyMarked() {
     duration_estimated: true
   });
 
-  assert.ok(stream.title.includes('~202.5 MB'));
-  assert.ok(stream.title.includes('~20 min'));
+  assert.ok(stream.title.includes('💾 203 MB'));
+  assert.ok(stream.title.includes('⌚ 20 min'));
+  assert.ok(!stream.title.includes('~'));
+  assert.strictEqual(stream.description, stream.title);
+  assert.strictEqual(
+    stream.behaviorHints.videoSize,
+    Math.round(202.5 * 1024 * 1024)
+  );
 }
 
 testCleanDescriptionPreservesLetterP();
-testEstimatedStreamMetadataIsClearlyMarked();
+testStreamMetadataUsesStremioCompatibleNotation();
 console.log('transformer tests passed');
