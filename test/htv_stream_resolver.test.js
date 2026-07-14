@@ -237,6 +237,10 @@ function testDefaultHandshakeAuthorityIsWorkerRelay() {
   );
 }
 
+function testStreamCacheWindowIsSixHours() {
+  assert.strictEqual(config.cache.ttl.stream, 6 * 60 * 60);
+}
+
 function testMissingMetadataDoesNotRenderZeroes() {
   const stream = toStremioStream({
     url: 'https://hanime.tv/hls/test',
@@ -258,6 +262,7 @@ async function run() {
     await testLimitsSegmentProbesForLargePlaylists();
     await testAlwaysUsesAuthenticatedWorkerRelay();
     testDefaultHandshakeAuthorityIsWorkerRelay();
+    testStreamCacheWindowIsSixHours();
     testMissingMetadataDoesNotRenderZeroes();
     console.log('htv_stream_resolver tests passed');
   } finally {

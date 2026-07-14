@@ -147,6 +147,10 @@ Set the identical value as `HTV_RELAY_SECRET` in the addon environment. The
 relay accepts only authenticated `POST /api/v11/handshake` requests and has a
 fixed Hanime upstream; it is not a general-purpose proxy.
 
+Upstream caches are demand-driven; the addon does not poll Hanime on a timer.
+Stream handshakes and the shared search dataset are reused for six hours after
+the first request, while metadata is reused for 36 hours.
+
 ## Available Catalogs
 
 - **Hanime**: main searchable catalog with genre and brand/studio filters
