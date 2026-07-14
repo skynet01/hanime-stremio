@@ -4,6 +4,7 @@ const signatureService = require('../lib/services/htv_signature_service');
 const HtvStreamResolver = require('../lib/services/htv_stream_resolver');
 const { sealMessage } = require('../lib/services/htv_stream_resolver');
 const { toStremioStream } = require('../lib/transformers/stream_transformer');
+const config = require('../lib/config');
 
 const originalGet = axios.get;
 const originalPost = axios.post;
@@ -183,6 +184,59 @@ async function testLimitsSegmentProbesForLargePlaylists() {
   assert.ok(segmentProbeCount <= 12, `made ${segmentProbeCount} segment probes`);
 }
 
+async function testAlwaysUsesAuthenticatedWorkerRelay() {
+  let handshakeRequest;
+
+  signatureService.getSignature = async () => ({ signature: 'test', time: 123 });
+  axios.post = async (url, body, options) => {
+    handshakeRequest = { url, body, options };
+    return {
+      status: 200,
+      headers: {
+        'x-token': sealMessage({ sources: [{ height: 720, url: '/hls/relay-720' }] })
+      }
+    };
+  };
+  axios.get = async (url) => {
+    if (url.startsWith('https://metadata.example/video')) {
+      return {
+        status: 200,
+        data: { hentai_video: { duration_in_ms: 600000 } }
+      };
+    }
+    throw new Error(`Unexpected GET ${url}`);
+  };
+
+  const resolver = new HtvStreamResolver({
+    api: {
+      htv: {
+        handshakeUrl: 'https://hanime-handshake.skynetsource.com/api/v11/handshake',
+        relaySecret: 'relay-secret',
+        metadataUrl: 'https://metadata.example/video',
+        hlsHost: 'https://hanime.tv'
+      }
+    }
+  });
+  const streams = await resolver.resolveStreams('test-video');
+
+  assert.strictEqual(streams.length, 1);
+  assert.strictEqual(
+    handshakeRequest.url,
+    'https://hanime-handshake.skynetsource.com/api/v11/handshake'
+  );
+  assert.strictEqual(
+    handshakeRequest.options.headers.authorization,
+    'Bearer relay-secret'
+  );
+}
+
+function testDefaultHandshakeAuthorityIsWorkerRelay() {
+  assert.strictEqual(
+    config.api.htv.handshakeUrl,
+    'https://hanime-handshake.skynetsource.com/api/v11/handshake'
+  );
+}
+
 function testMissingMetadataDoesNotRenderZeroes() {
   const stream = toStremioStream({
     url: 'https://hanime.tv/hls/test',
@@ -202,6 +256,8 @@ async function run() {
     await testUsesUniversalVideoMetadataWithoutPlaylistProbes();
     await testAlwaysReturnsEstimatedMetadataWhenEverySourceIsBlocked();
     await testLimitsSegmentProbesForLargePlaylists();
+    await testAlwaysUsesAuthenticatedWorkerRelay();
+    testDefaultHandshakeAuthorityIsWorkerRelay();
     testMissingMetadataDoesNotRenderZeroes();
     console.log('htv_stream_resolver tests passed');
   } finally {

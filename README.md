@@ -125,8 +125,27 @@ Key environment variables:
 | `ADDON_NAME` | `Hanime` | Stremio addon display name |
 | `ADDON_ID` | `hanime-addon` | Stremio addon ID |
 | `ADDON_VERSION` | package version | Override manifest version |
+| `HTV_HANDSHAKE_URL` | hosted relay URL | Cloudflare Worker handshake relay endpoint |
+| `HTV_RELAY_SECRET` | - | Bearer secret shared with the handshake relay Worker |
 
 See `docker-compose.yml` for all available options.
+
+The hosted deployment resolves streams through the single-purpose Worker in
+`workers/handshake-relay`. Self-hosters must deploy that Worker (or an
+equivalent fixed-target relay) and configure the same `HTV_RELAY_SECRET` on
+both services.
+
+Deploy the included Worker after adjusting its account and custom domain:
+
+```bash
+npx wrangler secret put RELAY_SECRET \
+  --config workers/handshake-relay/wrangler.jsonc
+npx wrangler deploy --config workers/handshake-relay/wrangler.jsonc
+```
+
+Set the identical value as `HTV_RELAY_SECRET` in the addon environment. The
+relay accepts only authenticated `POST /api/v11/handshake` requests and has a
+fixed Hanime upstream; it is not a general-purpose proxy.
 
 ## Available Catalogs
 
