@@ -105,17 +105,30 @@ async function testVideoMetadataUsesLiveUniversalCdnEndpoint() {
   assert.strictEqual(result.hentai_video.slug, 'test-video');
 }
 
-async function testProductionSearchUsesSignedUniversalCdnEndpoint() {
+async function testProductionSearchUsesAuthenticatedWorkerRelay() {
   let request;
   axios.get = async (url, options) => {
     request = { url, options };
     return { status: 200, data: [] };
   };
 
-  const client = new HanimeApiClient(config);
+  const client = new HanimeApiClient({
+    ...config,
+    api: {
+      ...config.api,
+      htv: {
+        ...config.api.htv,
+        relaySecret: 'relay-secret'
+      }
+    }
+  });
   await client.search({});
 
-  assert.strictEqual(request.url, 'https://www.universal-cdn.com/api/v11/search_hvs');
+  assert.strictEqual(
+    request.url,
+    'https://hanime-handshake.skynetsource.com/api/v11/search_hvs'
+  );
+  assert.strictEqual(request.options.headers.authorization, 'Bearer relay-secret');
   assert.strictEqual(request.options.headers['x-signature-version'], 'app2');
   assert.ok(request.options.headers['x-claim']);
   assert.ok(request.options.headers['x-signature']);
@@ -162,7 +175,7 @@ async function main() {
   try {
     await testSearchUsesSearchHvsDataset();
     await testVideoMetadataUsesLiveUniversalCdnEndpoint();
-    await testProductionSearchUsesSignedUniversalCdnEndpoint();
+    await testProductionSearchUsesAuthenticatedWorkerRelay();
     await testVideoMetadataFallsBackToSearchDataset();
     testSearchDatasetCacheWindowIsSixHours();
   } finally {

@@ -130,7 +130,7 @@ Key environment variables:
 
 See `docker-compose.yml` for all available options.
 
-The hosted deployment resolves streams through the single-purpose Worker in
+The hosted deployment resolves streams and catalog data through the locked Worker in
 `workers/handshake-relay`. Self-hosters must deploy that Worker (or an
 equivalent fixed-target relay) and configure the same `HTV_RELAY_SECRET` on
 both services.
@@ -144,8 +144,8 @@ npx wrangler deploy --config workers/handshake-relay/wrangler.jsonc
 ```
 
 Set the identical value as `HTV_RELAY_SECRET` in the addon environment. The
-relay accepts only authenticated `POST /api/v11/handshake` requests and has a
-fixed Hanime upstream; it is not a general-purpose proxy.
+relay accepts only the authenticated handshake POST and signed search-dataset
+GET routes. Both have fixed Hanime upstreams; it is not a general-purpose proxy.
 
 Upstream caches are demand-driven; the addon does not poll Hanime on a timer.
 Stream handshakes and the shared search dataset are reused for six hours after

@@ -92,6 +92,46 @@ async function testForwardsHandshakeAndPreservesToken() {
   assert.deepStrictEqual(await upstreamRequest.json(), { token: 'sealed-request' });
 }
 
+async function testForwardsSignedSearchDatasetRequest() {
+  const { createRelay } = await loadWorker();
+  let upstreamRequest;
+  const relay = createRelay({
+    fetchImpl: async (request) => {
+      upstreamRequest = request;
+      return new Response('[{"slug":"test-video"}]', {
+        status: 200,
+        headers: { 'content-type': 'application/json' }
+      });
+    }
+  });
+
+  const response = await relay.fetch(
+    new Request('https://relay.example/api/v11/search_hvs', {
+      headers: {
+        authorization: 'Bearer expected-secret',
+        'x-claim': '123',
+        'x-signature': 'signature',
+        'x-signature-version': 'app2',
+        'x-session-token': '',
+        'x-untrusted-header': 'must-not-forward'
+      }
+    }),
+    { RELAY_SECRET: 'expected-secret' }
+  );
+
+  assert.strictEqual(response.status, 200);
+  assert.deepStrictEqual(await response.json(), [{ slug: 'test-video' }]);
+  assert.strictEqual(
+    upstreamRequest.url,
+    'https://guest.freeanimehentai.net/api/v11/search_hvs'
+  );
+  assert.strictEqual(upstreamRequest.method, 'GET');
+  assert.strictEqual(upstreamRequest.headers.get('x-claim'), '123');
+  assert.strictEqual(upstreamRequest.headers.get('x-signature'), 'signature');
+  assert.strictEqual(upstreamRequest.headers.get('authorization'), null);
+  assert.strictEqual(upstreamRequest.headers.get('x-untrusted-header'), null);
+}
+
 async function testReturnsBadGatewayWhenUpstreamFails() {
   const { createRelay } = await loadWorker();
   const relay = createRelay({
@@ -120,6 +160,7 @@ async function run() {
   await testRejectsUnauthorizedRequests();
   await testRejectsNonHandshakeRoutes();
   await testForwardsHandshakeAndPreservesToken();
+  await testForwardsSignedSearchDatasetRequest();
   await testReturnsBadGatewayWhenUpstreamFails();
   console.log('worker relay tests passed');
 }
