@@ -130,10 +130,27 @@ Key environment variables:
 
 See `docker-compose.yml` for all available options.
 
-The hosted deployment resolves streams and catalog data through the locked Worker in
-`workers/handshake-relay`. Self-hosters must deploy that Worker (or an
-equivalent fixed-target relay) and configure the same `HTV_RELAY_SECRET` on
-both services.
+### Worker relay for hosted deployments
+
+Hanime can return a Cloudflare 403 before processing signed API requests from
+datacenter, VPS, cloud, and other non-residential IPs. Deployments on those
+networks require the locked Worker in `workers/handshake-relay`; do not rely on
+direct upstream fallback. The current addon routes both catalog data and stream
+handshakes through the Worker at all times so production behavior is
+consistent.
+
+The Worker exposes only these authenticated, fixed-target routes:
+
+- `GET /api/v11/search_hvs` for the signed catalog search dataset
+- `POST /api/v11/handshake` for playable stream handshakes
+
+The hosted Worker uses `hanime-handshake.skynetsource.com`. On a new hosted
+addon machine, set `HTV_RELAY_SECRET` to the same value as the Worker's
+`RELAY_SECRET`; never commit that value. If deploying a separate Worker domain,
+update both relay targets: set `HTV_HANDSHAKE_URL` for the handshake route and
+change `config.api.searchUrl` in `lib/config.js` for the search route. Changing
+only the handshake URL will leave catalogs and posters pointed at the hosted
+Worker with the wrong secret.
 
 Deploy the included Worker after adjusting its account and custom domain:
 
@@ -146,6 +163,11 @@ npx wrangler deploy --config workers/handshake-relay/wrangler.jsonc
 Set the identical value as `HTV_RELAY_SECRET` in the addon environment. The
 relay accepts only the authenticated handshake POST and signed search-dataset
 GET routes. Both have fixed Hanime upstreams; it is not a general-purpose proxy.
+
+After deploying from a non-residential host, verify multiple catalog categories
+and a poster, film/series metadata, all stream qualities, parseable file
+size/duration tags, and an HLS playlist fetched from a residential connection
+before treating the deployment as healthy.
 
 Upstream caches are demand-driven; the addon does not poll Hanime on a timer.
 Stream handshakes and the shared search dataset are reused for six hours after
