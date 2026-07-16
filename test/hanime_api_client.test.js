@@ -85,24 +85,32 @@ async function testSearchUsesSearchHvsDataset() {
   assert.deepStrictEqual(calls, [['get', searchUrl]]);
 }
 
-async function testVideoMetadataUsesLiveUniversalCdnEndpoint() {
-  let requestedUrl;
+async function testVideoMetadataUsesSearchDatasetWithoutCallingRetiredEndpoint() {
+  const requestedUrls = [];
   axios.get = async (url) => {
-    requestedUrl = url;
+    requestedUrls.push(url);
+
+    if (url.includes('/api/v8/video')) {
+      throw new Error('Retired video metadata endpoint must not be requested');
+    }
+
     return {
       status: 200,
-      data: { hentai_video: { slug: 'test-video' } }
+      data: [{
+        slug: 'test-video',
+        name: 'Test Video',
+        tags: ['hd', 'plot']
+      }]
     };
   };
 
   const client = new HanimeApiClient(config);
-  const result = await client.getVideoData('test-video', 0);
+  const result = await client.getVideoData('test-video');
 
-  assert.strictEqual(
-    requestedUrl,
-    'https://www.universal-cdn.com/api/v8/video?id=test-video&'
-  );
   assert.strictEqual(result.hentai_video.slug, 'test-video');
+  assert.deepStrictEqual(requestedUrls, [
+    'https://hanime-handshake.skynetsource.com/api/v11/search_hvs'
+  ]);
 }
 
 async function testProductionSearchUsesAuthenticatedWorkerRelay() {
@@ -134,21 +142,16 @@ async function testProductionSearchUsesAuthenticatedWorkerRelay() {
   assert.ok(request.options.headers['x-signature']);
 }
 
-async function testVideoMetadataFallsBackToSearchDataset() {
+async function testVideoMetadataNormalizesSearchDatasetFields() {
   axios.get = async (url) => {
-    if (url.includes('/api/v8/video')) {
-      const error = new Error('Request failed with status code 404');
-      error.response = { status: 404 };
-      throw error;
-    }
     if (url.includes('/api/v11/search_hvs')) {
       return {
         status: 200,
         data: [{
-          slug: 'fallback-video',
-          name: 'Fallback Video',
+          slug: 'dataset-video',
+          name: 'Dataset Video',
           tags: ['hd', 'plot'],
-          description: '<p>Fallback description</p>'
+          description: '<p>Dataset description</p>'
         }]
       };
     }
@@ -156,9 +159,9 @@ async function testVideoMetadataFallsBackToSearchDataset() {
   };
 
   const client = new HanimeApiClient(config);
-  const result = await client.getVideoData('fallback-video', 0);
+  const result = await client.getVideoData('dataset-video');
 
-  assert.strictEqual(result.hentai_video.slug, 'fallback-video');
+  assert.strictEqual(result.hentai_video.slug, 'dataset-video');
   assert.strictEqual(result.hentai_video.duration_in_ms, 20 * 60 * 1000);
   assert.deepStrictEqual(result.hentai_video.hentai_tags, [
     { text: 'hd' },
@@ -174,9 +177,9 @@ function testSearchDatasetCacheWindowIsSixHours() {
 async function main() {
   try {
     await testSearchUsesSearchHvsDataset();
-    await testVideoMetadataUsesLiveUniversalCdnEndpoint();
+    await testVideoMetadataUsesSearchDatasetWithoutCallingRetiredEndpoint();
     await testProductionSearchUsesAuthenticatedWorkerRelay();
-    await testVideoMetadataFallsBackToSearchDataset();
+    await testVideoMetadataNormalizesSearchDatasetFields();
     testSearchDatasetCacheWindowIsSixHours();
   } finally {
     axios.get = originalGet;
